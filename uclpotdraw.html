@@ -1,0 +1,3036 @@
+﻿<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>UCL Pot Draw Simulator</title>
+  <style>
+    :root {
+      --bg-1: #0b1020;
+      --bg-2: #151c34;
+      --card: rgba(255, 255, 255, 0.08);
+      --card-strong: rgba(255, 255, 255, 0.14);
+      --text: #f7f9ff;
+      --muted: #a9b2d4;
+      --accent: #59d0ff;
+      --accent-2: #ffd166;
+      --ok: #6ee7b7;
+      --err: #ff7b7b;
+      --border: rgba(255, 255, 255, 0.18);
+      --shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 15% 15%, #18336a 0%, transparent 42%),
+        radial-gradient(circle at 85% 10%, #4d244f 0%, transparent 35%),
+        radial-gradient(circle at 50% 85%, #0e5a5c 0%, transparent 40%),
+        linear-gradient(145deg, var(--bg-1), var(--bg-2));
+      padding: 24px;
+    }
+
+    .wrap {
+      max-width: 1300px;
+      margin: 0 auto;
+      display: grid;
+      gap: 18px;
+    }
+
+    .panel {
+      backdrop-filter: blur(8px);
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      box-shadow: var(--shadow);
+      padding: 16px;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: clamp(1.5rem, 2.5vw, 2.2rem);
+      letter-spacing: 0.3px;
+    }
+
+    .headbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    .head-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .chip-btn {
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.09);
+      color: #eef4ff;
+      padding: 8px 12px;
+      font-weight: 700;
+    }
+
+    .chip-emoji {
+      min-width: 42px;
+      font-size: 1.05rem;
+      line-height: 1;
+      padding: 8px 10px;
+    }
+
+    .subtitle {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.96rem;
+    }
+
+    .controls {
+      display: grid;
+      gap: 12px;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      align-items: end;
+    }
+
+    label {
+      display: grid;
+      gap: 6px;
+      font-size: 0.9rem;
+      color: #d6ddf7;
+    }
+
+    input[type="number"], textarea {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px;
+      background: rgba(10, 15, 28, 0.7);
+      color: var(--text);
+      font: inherit;
+      outline: none;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    textarea {
+      min-height: 220px;
+      resize: vertical;
+      line-height: 1.45;
+    }
+
+    input[type="number"]:focus, textarea:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(89, 208, 255, 0.2);
+    }
+
+    .checkbox {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 42px;
+    }
+
+    .checkbox input {
+      transform: scale(1.15);
+    }
+
+    .btnrow {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 2px;
+    }
+
+    button {
+      border: none;
+      border-radius: 10px;
+      padding: 10px 14px;
+      font: inherit;
+      font-weight: 600;
+      cursor: pointer;
+      color: #101321;
+      background: linear-gradient(135deg, var(--accent), #8bf0ff);
+      transition: transform 0.15s ease, filter 0.2s ease;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+      filter: brightness(1.06);
+    }
+
+    button.secondary {
+      background: linear-gradient(135deg, var(--accent-2), #ffe3a1);
+    }
+
+    .pots {
+      display: grid;
+      gap: 12px;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    }
+
+    .pot-card {
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: var(--card-strong);
+      padding: 10px;
+      display: grid;
+      gap: 8px;
+    }
+
+    .pot-card h3 {
+      margin: 0;
+      font-size: 1rem;
+      color: #f0f4ff;
+    }
+
+    .status {
+      margin: 0;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid transparent;
+      font-size: 0.95rem;
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .status.show {
+      display: flex;
+    }
+
+    .status.ok {
+      color: #eafff6;
+      background: rgba(22, 163, 74, 0.25);
+      border-color: rgba(110, 231, 183, 0.5);
+    }
+
+    .status.err {
+      color: #fff0f0;
+      background: rgba(185, 28, 28, 0.25);
+      border-color: rgba(255, 123, 123, 0.45);
+    }
+
+    .status-text {
+      flex: 1;
+    }
+
+    .status-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .status-mini {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 6px 10px;
+      background: rgba(255, 255, 255, 0.16);
+      color: #f3f6ff;
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .status-close {
+      width: 30px;
+      height: 30px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.12);
+      color: #fff;
+      font-weight: 800;
+      line-height: 1;
+      cursor: pointer;
+    }
+
+    .summary {
+      color: #dce4ff;
+      font-size: 0.95rem;
+      margin: 0;
+    }
+
+    .rounds {
+      display: grid;
+      gap: 12px;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    }
+
+    .right-actions {
+      display: none;
+      justify-content: center;
+      margin-top: 12px;
+    }
+
+    .right-actions.show {
+      display: flex;
+    }
+
+    #checkValidity {
+      width: min(96%, 1100px);
+      text-align: center;
+    }
+
+    .report {
+      margin-top: 12px;
+      display: grid;
+      gap: 10px;
+    }
+
+    .team-report {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px;
+      background: rgba(255, 255, 255, 0.04);
+      font-size: 0.9rem;
+      line-height: 1.45;
+    }
+
+    .report-table-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .report-table {
+      width: 100%;
+      min-width: 980px;
+      border-collapse: collapse;
+      font-size: 0.88rem;
+    }
+
+    .report-table th,
+    .report-table td {
+      padding: 8px 10px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      text-align: left;
+      white-space: nowrap;
+    }
+
+    .report-table th {
+      color: #d8e4ff;
+      background: rgba(255, 255, 255, 0.06);
+      font-weight: 700;
+    }
+
+    .report-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .bad {
+      color: #ff8f8f;
+      font-weight: 700;
+    }
+
+    .row-bad td:first-child {
+      color: #ffb2b2;
+      font-weight: 700;
+    }
+
+    .overlay {
+      position: fixed;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 50;
+      background: rgba(2, 5, 14, 0.75);
+      padding: 16px;
+    }
+
+    .overlay.show {
+      display: flex;
+    }
+
+    .overlay-card {
+      width: min(980px, 100%);
+      max-height: min(88vh, 860px);
+      overflow: auto;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: rgba(14, 20, 38, 0.98);
+      box-shadow: var(--shadow);
+      padding: 14px;
+      display: grid;
+      gap: 10px;
+    }
+
+    .overlay-card h3 {
+      margin: 0;
+    }
+
+    .overlay-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: flex-start;
+    }
+
+    .hidden-file {
+      display: none;
+    }
+
+    .overlay-bottom {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 2px;
+    }
+
+    .stack-actions {
+      display: grid;
+      gap: 8px;
+      width: min(96%, 1100px);
+    }
+
+    #inspectOpponents {
+      background: linear-gradient(135deg, var(--accent), #8bf0ff);
+      color: #101321;
+    }
+
+    #assignLeagues {
+      background: linear-gradient(135deg, #ff5ea8, #ff9bc7);
+      color: #fff6fb;
+    }
+
+    .league-panel {
+      display: grid;
+      gap: 8px;
+    }
+
+    .league-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .league-pill {
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 6px 10px;
+      color: #fff;
+      font-weight: 700;
+      cursor: pointer;
+      background: rgba(255, 255, 255, 0.12);
+    }
+
+    .league-pill.active {
+      outline: 2px solid #fff;
+      outline-offset: 1px;
+    }
+
+    .league-small {
+      border-radius: 8px;
+      padding: 6px 9px;
+      font-size: 0.82rem;
+      border: 1px solid var(--border);
+      color: #f2f6ff;
+      background: rgba(255, 255, 255, 0.1);
+      cursor: pointer;
+    }
+
+    .league-teams {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 8px;
+    }
+
+    .league-team {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 8px;
+      background: rgba(255, 255, 255, 0.05);
+      cursor: pointer;
+      color: #f2f6ff;
+      display: grid;
+      gap: 5px;
+      text-align: left;
+    }
+
+    .league-team small {
+      color: #cbd6ff;
+    }
+
+    .inspect-pots {
+      display: grid;
+      gap: 12px;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    }
+
+    .inspect-pot {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px;
+      background: rgba(255, 255, 255, 0.05);
+      display: grid;
+      gap: 8px;
+    }
+
+    .inspect-pot h4 {
+      margin: 0;
+    }
+
+    .inspect-team-btn {
+      text-align: left;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.07);
+      color: #eef4ff;
+      border-radius: 8px;
+      padding: 8px 9px;
+      cursor: pointer;
+      font: inherit;
+      font-weight: 600;
+    }
+
+    .round {
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: rgba(7, 11, 24, 0.66);
+      padding: 10px;
+      display: grid;
+      gap: 8px;
+      animation: rise 0.35s ease both;
+      animation-delay: var(--d, 0ms);
+    }
+
+    .round h4 {
+      margin: 0;
+      color: #f8fbff;
+      font-size: 0.98rem;
+    }
+
+    .match {
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 8px;
+      padding: 8px;
+      background: rgba(255, 255, 255, 0.04);
+      font-size: 0.92rem;
+      color: #eaf0ff;
+    }
+
+    .muted {
+      color: var(--muted);
+    }
+
+    @keyframes rise {
+      from {
+        transform: translateY(8px);
+        opacity: 0;
+      }
+      to {
+        transform: translateY(0);
+        opacity: 1;
+      }
+    }
+
+    @media (max-width: 700px) {
+      body {
+        padding: 14px;
+      }
+
+      .panel {
+        padding: 12px;
+      }
+
+      textarea {
+        min-height: 170px;
+      }
+    }
+  
+  .siteFooter {
+    margin-top: 22px;
+    padding: 12px 10px 18px;
+    text-align: center;
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .siteFooter a {
+  color: var(--text);
+  }
+  .siteFooter img {
+    max-width: 1em;
+    max-height: 1em;
+    margin-left: .2em;
+    vertical-align: -0.12em;
+  }
+  
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <section class="panel">
+      <div class="headbar">
+        <div>
+          <h1>UCL Pot Draw Simulator</h1>
+          <p class="subtitle">Losowanie par i kolejek: maks. 8 koszyków, maks. 16 drużyn w koszyku, wszystko w jednym pliku.</p>
+        </div>
+        <div class="head-actions">
+          <button id="bugPanelBtn" class="chip-btn chip-emoji" type="button" title="Usterka">⚙️</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="controls">
+        <label>
+          Liczba koszyków (1-8)
+          <input id="potsCount" type="number" min="1" max="8" value="4" />
+        </label>
+
+        <label>
+          Drużyn na koszyk (2-16)
+          <input id="teamsPerPot" type="number" min="2" max="16" value="8" />
+        </label>
+
+        <label>
+          Meczów z każdym koszykiem (1-n)
+          <input id="matchesPerPot" type="number" min="1" max="8" value="1" />
+        </label>
+
+        <label class="checkbox">
+          <input id="includeOwnPot" type="checkbox" checked />
+          Uwzględnij własny koszyk
+        </label>
+
+        <label class="checkbox">
+          <input id="enforceHomeAwayBalance" type="checkbox" />
+          50-50 domowe-wyjazdowe
+        </label>
+
+        <label class="checkbox">
+          <input id="softHomeAwayBalance" type="checkbox" />
+          + - po rowno D/W
+        </label>
+
+        <label class="checkbox">
+          <input id="avoidSameLeague" type="checkbox" checked />
+          Bez druzyn z tej samej ligii
+        </label>
+
+        <label class="checkbox">
+          <input id="oncePerLeague" type="checkbox" />
+          Tylko raz z dana liga
+        </label>
+
+        <label class="checkbox">
+          <input id="remixRoundsByTeam" type="checkbox" checked />
+          Tasuj mecze druzyn miedzy kolejkami
+        </label>
+
+        <label class="checkbox">
+          <input id="maxTwoStreak" type="checkbox" />
+          Sprobuj max 2. pod rzad D/W (beta)
+        </label>
+      </div>
+
+      <div class="btnrow">
+        <button id="buildPots">Utwórz pola koszyków</button>
+        <button id="assignLeagues">Przydziel do lig</button>
+        <button id="drawFixtures" class="secondary">Losuj mecze i kolejki</button>
+      </div>
+    </section>
+
+    <section class="panel">
+      <p class="summary" id="summary">Wygeneruj koszyki, wpisz drużyny (po jednej linii) i kliknij losowanie.</p>
+      <p id="status" class="status"></p>
+      <div id="potsContainer" class="pots"></div>
+    </section>
+
+    <section class="panel">
+      <div id="roundsContainer" class="rounds"></div>
+      <div id="checkValidityWrap" class="right-actions">
+        <div class="stack-actions">
+          <button id="inspectOpponents">Przejrzyj rywali</button>
+          <button id="checkValidity" class="secondary">Sprawdz Prawidlowosc</button>
+        </div>
+      </div>
+      <div id="reportContainer" class="report"></div>
+    </section>
+  </div>
+
+  <div id="bugOverlay" class="overlay">
+    <div class="overlay-card">
+      <h3>🗃️ Eksport / import danych</h3>
+      <p class="muted">Obsługuje: ustawienia, koszyki, nazwy klubow, kolejki meczow i podsumowanie.</p>
+      <div class="overlay-actions">
+        <button id="exportStateBtn" type="button">Pobierz JSON</button>
+        <button id="importStateBtn" class="secondary" type="button">Wczytaj JSON</button>
+        <button id="seedToPotsBtn" class="secondary" type="button">Przylosuj do koszykow</button>
+        <input id="importJsonFile" class="hidden-file" type="file" accept=".json,application/json" />
+      </div>
+      <div class="overlay-bottom">
+        <button id="closeBugOverlayBtn" class="secondary" type="button">Zamknij</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="seedOverlay" class="overlay">
+    <div class="overlay-card">
+      <h3>Przylosuj do koszykow</h3>
+      <p class="muted">Wpisz nazwy druzyn (jedna pod druga) i podaj liczbe koszykow.</p>
+      <label>
+        Liczba koszykow
+        <input id="seedPotsCount" type="number" min="1" max="8" value="4" />
+      </label>
+      <label>
+        Lista druzyn (1 linia = 1 druzyna)
+        <textarea id="seedTeamsArea" placeholder="Real Madryt&#10;Barcelona&#10;Bayern&#10;..."></textarea>
+      </label>
+      <div class="overlay-bottom">
+        <button id="applySeedBtn" type="button">Przylosuj</button>
+        <button id="closeSeedOverlayBtn" class="secondary" type="button">Zamknij</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="seedErrorOverlay" class="overlay">
+    <div class="overlay-card" style="width:min(620px,100%);">
+      <h3>Blad danych</h3>
+      <p id="seedErrorText" class="muted"></p>
+      <div class="overlay-bottom">
+        <button id="closeSeedErrorBtn" type="button">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="leagueOverlay" class="overlay">
+    <div class="overlay-card">
+      <h3>Przydziel do lig</h3>
+      <p class="muted">Kliknij "Stworz lige", wybierz ja i klikaj druzyny, aby przypisac/usunac przypisanie.</p>
+      <div class="overlay-actions">
+        <button id="createLeagueBtn" type="button">Stworz lige</button>
+      </div>
+      <div id="leaguePanel" class="league-panel"></div>
+      <div class="overlay-bottom">
+        <button id="closeLeagueOverlayBtn" class="secondary" type="button">Zamknij</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="inspectOverlay" class="overlay">
+    <div class="overlay-card">
+      <h3>Przejrzyj rywali</h3>
+      <p class="muted">Kliknij druzyne, aby zobaczyc wszystkie mecze i gospodarza.</p>
+      <div id="inspectTeamsContainer" class="inspect-pots"></div>
+      <div class="overlay-bottom">
+        <button id="closeInspectOverlayBtn" class="secondary" type="button">Zamknij</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="inspectTeamOverlay" class="overlay">
+    <div class="overlay-card" style="width:min(760px,100%);">
+      <h3 id="inspectTeamTitle">Rywalizacja druzyny</h3>
+      <div id="inspectTeamMatches" class="report"></div>
+      <div class="overlay-bottom">
+        <button id="closeInspectTeamOverlayBtn" class="secondary" type="button">Zamknij</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="errorPreviewOverlay" class="overlay">
+    <div class="overlay-card">
+      <h3>Podglad losowania z bledem</h3>
+      <p id="errorPreviewText" class="muted"></p>
+      <div id="errorPreviewRounds" class="rounds"></div>
+      <div class="overlay-bottom">
+        <button id="approveErrorPreviewBtn" type="button">Zatwierdz</button>
+        <button id="cancelErrorPreviewBtn" class="secondary" type="button">Anuluj</button>
+      </div>
+    </div>
+  </div>
+
+  <footer class="siteFooter">
+  <a href="https://szymixx7.github.io/S7-UCL-Pot-Draw-Simulator/" target="_blank" rel="noopener noreferrer">S7 UCL Pot Draw Simulator</a>
+  © 2026 by
+  <a href="https://instagram.com/xszymon7/" target="_blank" rel="noopener noreferrer">Szymix7</a>
+  jest objęty licencją
+  <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/" target="_blank" rel="license noopener noreferrer">CC BY-NC-ND 4.0</a>
+  <img src="https://mirrors.creativecommons.org/presskit/icons/cc.svg" alt="CC">
+  <img src="https://mirrors.creativecommons.org/presskit/icons/by.svg" alt="BY">
+  <img src="https://mirrors.creativecommons.org/presskit/icons/nc.svg" alt="NC">
+  <img src="https://mirrors.creativecommons.org/presskit/icons/nd.svg" alt="ND">
+  </footer>
+  
+  <script>
+    const MAX_POTS = 8;
+    const MAX_TEAMS = 16;
+    const MAX_ATTEMPTS = 220;
+
+    const els = {
+      potsCount: document.getElementById("potsCount"),
+      teamsPerPot: document.getElementById("teamsPerPot"),
+      matchesPerPot: document.getElementById("matchesPerPot"),
+      includeOwnPot: document.getElementById("includeOwnPot"),
+      enforceHomeAwayBalance: document.getElementById("enforceHomeAwayBalance"),
+      softHomeAwayBalance: document.getElementById("softHomeAwayBalance"),
+      avoidSameLeague: document.getElementById("avoidSameLeague"),
+      oncePerLeague: document.getElementById("oncePerLeague"),
+      remixRoundsByTeam: document.getElementById("remixRoundsByTeam"),
+      maxTwoStreak: document.getElementById("maxTwoStreak"),
+      bugPanelBtn: document.getElementById("bugPanelBtn"),
+      bugOverlay: document.getElementById("bugOverlay"),
+      exportStateBtn: document.getElementById("exportStateBtn"),
+      importStateBtn: document.getElementById("importStateBtn"),
+      seedToPotsBtn: document.getElementById("seedToPotsBtn"),
+      importJsonFile: document.getElementById("importJsonFile"),
+      closeBugOverlayBtn: document.getElementById("closeBugOverlayBtn"),
+      seedOverlay: document.getElementById("seedOverlay"),
+      seedPotsCount: document.getElementById("seedPotsCount"),
+      seedTeamsArea: document.getElementById("seedTeamsArea"),
+      applySeedBtn: document.getElementById("applySeedBtn"),
+      closeSeedOverlayBtn: document.getElementById("closeSeedOverlayBtn"),
+      seedErrorOverlay: document.getElementById("seedErrorOverlay"),
+      seedErrorText: document.getElementById("seedErrorText"),
+      closeSeedErrorBtn: document.getElementById("closeSeedErrorBtn"),
+      buildPots: document.getElementById("buildPots"),
+      assignLeagues: document.getElementById("assignLeagues"),
+      drawFixtures: document.getElementById("drawFixtures"),
+      checkValidity: document.getElementById("checkValidity"),
+      checkValidityWrap: document.getElementById("checkValidityWrap"),
+      potsContainer: document.getElementById("potsContainer"),
+      roundsContainer: document.getElementById("roundsContainer"),
+      reportContainer: document.getElementById("reportContainer"),
+      status: document.getElementById("status"),
+      summary: document.getElementById("summary"),
+      leagueOverlay: document.getElementById("leagueOverlay"),
+      createLeagueBtn: document.getElementById("createLeagueBtn"),
+      closeLeagueOverlayBtn: document.getElementById("closeLeagueOverlayBtn"),
+      leaguePanel: document.getElementById("leaguePanel"),
+      inspectOpponents: document.getElementById("inspectOpponents"),
+      inspectOverlay: document.getElementById("inspectOverlay"),
+      closeInspectOverlayBtn: document.getElementById("closeInspectOverlayBtn"),
+      inspectTeamsContainer: document.getElementById("inspectTeamsContainer"),
+      inspectTeamOverlay: document.getElementById("inspectTeamOverlay"),
+      inspectTeamTitle: document.getElementById("inspectTeamTitle"),
+      inspectTeamMatches: document.getElementById("inspectTeamMatches"),
+      closeInspectTeamOverlayBtn: document.getElementById("closeInspectTeamOverlayBtn"),
+      errorPreviewOverlay: document.getElementById("errorPreviewOverlay"),
+      errorPreviewText: document.getElementById("errorPreviewText"),
+      errorPreviewRounds: document.getElementById("errorPreviewRounds"),
+      approveErrorPreviewBtn: document.getElementById("approveErrorPreviewBtn"),
+      cancelErrorPreviewBtn: document.getElementById("cancelErrorPreviewBtn")
+    };
+    let lastDraw = null;
+    let pendingErrorPreview = null;
+    let forcedSearchMode = 0;
+    const leagueState = {
+      leagues: [],
+      assignments: {},
+      activeLeagueId: null
+    };
+
+    function clampInt(value, min, max, fallback) {
+      const n = Number.parseInt(value, 10);
+      if (Number.isNaN(n)) return fallback;
+      return Math.max(min, Math.min(max, n));
+    }
+
+    function sanitizeConfig() {
+      const potsCount = clampInt(els.potsCount.value, 1, MAX_POTS, 4);
+      const teamsPerPot = clampInt(els.teamsPerPot.value, 2, MAX_TEAMS, 8);
+      const includeOwnPot = !!els.includeOwnPot.checked;
+      const enforceHomeAwayBalance = !!els.enforceHomeAwayBalance.checked;
+      let softHomeAwayBalance = !!els.softHomeAwayBalance.checked;
+      const avoidSameLeague = !!els.avoidSameLeague.checked;
+      const oncePerLeague = !!els.oncePerLeague.checked;
+      const remixRoundsByTeam = !!els.remixRoundsByTeam.checked;
+      const maxTwoStreak = !!els.maxTwoStreak.checked;
+      if (enforceHomeAwayBalance && softHomeAwayBalance) {
+        softHomeAwayBalance = false;
+        els.softHomeAwayBalance.checked = false;
+      }
+      const maxMatches = teamsPerPot;
+      const matchesPerPot = clampInt(els.matchesPerPot.value, 1, maxMatches, 1);
+
+      els.potsCount.value = String(potsCount);
+      els.teamsPerPot.value = String(teamsPerPot);
+      els.matchesPerPot.max = String(maxMatches);
+      els.matchesPerPot.value = String(matchesPerPot);
+
+      return {
+        potsCount,
+        teamsPerPot,
+        matchesPerPot,
+        includeOwnPot,
+        enforceHomeAwayBalance,
+        softHomeAwayBalance,
+        avoidSameLeague,
+        oncePerLeague,
+        remixRoundsByTeam,
+        maxTwoStreak
+      };
+    }
+
+    function showStatus(message, isError, actions) {
+      els.status.className = "status show " + (isError ? "err" : "ok");
+      els.status.innerHTML = "";
+
+      const text = document.createElement("span");
+      text.className = "status-text";
+      text.textContent = message;
+      els.status.appendChild(text);
+
+      const actionsWrap = document.createElement("div");
+      actionsWrap.className = "status-actions";
+      if (Array.isArray(actions)) {
+        for (const action of actions) {
+          if (!action || typeof action.label !== "string" || typeof action.onClick !== "function") continue;
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "status-mini";
+          btn.textContent = action.label;
+          btn.addEventListener("click", action.onClick);
+          actionsWrap.appendChild(btn);
+        }
+      }
+
+      if (isError) {
+        const closeBtn = document.createElement("button");
+        closeBtn.type = "button";
+        closeBtn.className = "status-close";
+        closeBtn.textContent = "x";
+        closeBtn.title = "Zamknij blad";
+        closeBtn.addEventListener("click", clearStatus);
+        actionsWrap.appendChild(closeBtn);
+      }
+
+      if (actionsWrap.children.length > 0) {
+        els.status.appendChild(actionsWrap);
+      }
+    }
+
+    function clearStatus() {
+      els.status.className = "status";
+      els.status.innerHTML = "";
+    }
+
+    function randInt(max) {
+      return Math.floor(Math.random() * max);
+    }
+
+    function nowMs() {
+      if (typeof performance !== "undefined" && performance && typeof performance.now === "function") {
+        return performance.now();
+      }
+      return Date.now();
+    }
+
+    function shuffle(arr) {
+      for (let i = arr.length - 1; i > 0; i -= 1) {
+        const j = randInt(i + 1);
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    }
+
+    function leagueColorByIndex(idx) {
+      const hue = (idx * 67 + 22) % 360;
+      return "hsl(" + hue + " 70% 42%)";
+    }
+
+    function leagueById(id) {
+      return leagueState.leagues.find((l) => l.id === id) || null;
+    }
+
+    function normalizeTeamName(name) {
+      return String(name || "").trim().toLowerCase();
+    }
+
+    function getLeagueIdForTeamName(name) {
+      const key = normalizeTeamName(name);
+      return key ? (leagueState.assignments[key] || null) : null;
+    }
+
+    function pruneLeagueAssignmentsToCurrentTeams() {
+      const pots = readPotsFromInputs();
+      const valid = new Set();
+      for (const pot of pots) {
+        for (const team of pot) valid.add(normalizeTeamName(team));
+      }
+      for (const key of Object.keys(leagueState.assignments)) {
+        if (!valid.has(key)) delete leagueState.assignments[key];
+      }
+
+      const ids = new Set(leagueState.leagues.map((l) => l.id));
+      for (const key of Object.keys(leagueState.assignments)) {
+        if (!ids.has(leagueState.assignments[key])) delete leagueState.assignments[key];
+      }
+      if (leagueState.activeLeagueId && !ids.has(leagueState.activeLeagueId)) {
+        leagueState.activeLeagueId = null;
+      }
+    }
+
+    function renderLeagueOverlay() {
+      pruneLeagueAssignmentsToCurrentTeams();
+      els.leaguePanel.innerHTML = "";
+
+      const leaguesWrap = document.createElement("div");
+      leaguesWrap.className = "league-panel";
+      if (leagueState.leagues.length === 0) {
+        const noLeague = document.createElement("p");
+        noLeague.className = "muted";
+        noLeague.textContent = "Brak lig. Kliknij 'Stworz lige'.";
+        leaguesWrap.appendChild(noLeague);
+      } else {
+        for (const league of leagueState.leagues) {
+          const row = document.createElement("div");
+          row.className = "league-row";
+
+          const pill = document.createElement("button");
+          pill.type = "button";
+          pill.className = "league-pill" + (leagueState.activeLeagueId === league.id ? " active" : "");
+          pill.style.background = league.color;
+          pill.textContent = league.name;
+          pill.addEventListener("click", () => {
+            leagueState.activeLeagueId = (leagueState.activeLeagueId === league.id) ? null : league.id;
+            renderLeagueOverlay();
+          });
+
+          const rename = document.createElement("button");
+          rename.type = "button";
+          rename.className = "league-small";
+          rename.textContent = "Zmien nazwe";
+          rename.addEventListener("click", () => {
+            const next = prompt("Nowa nazwa ligi:", league.name);
+            if (next === null) return;
+            const clean = next.trim();
+            if (!clean) return;
+            league.name = clean;
+            renderLeagueOverlay();
+          });
+
+          const remove = document.createElement("button");
+          remove.type = "button";
+          remove.className = "league-small";
+          remove.textContent = "Usun";
+          remove.addEventListener("click", () => {
+            if (!confirm("Usunac lige '" + league.name + "'?")) return;
+            leagueState.leagues = leagueState.leagues.filter((l) => l.id !== league.id);
+            for (const key of Object.keys(leagueState.assignments)) {
+              if (leagueState.assignments[key] === league.id) delete leagueState.assignments[key];
+            }
+            if (leagueState.activeLeagueId === league.id) leagueState.activeLeagueId = null;
+            renderLeagueOverlay();
+          });
+
+          row.appendChild(pill);
+          row.appendChild(rename);
+          row.appendChild(remove);
+          leaguesWrap.appendChild(row);
+        }
+      }
+      els.leaguePanel.appendChild(leaguesWrap);
+
+      const teamsWrap = document.createElement("div");
+      teamsWrap.className = "league-teams";
+      const pots = readPotsFromInputs();
+      for (const pot of pots) {
+        for (const teamName of pot) {
+          const key = normalizeTeamName(teamName);
+          const lid = leagueState.assignments[key] || null;
+          const league = lid ? leagueById(lid) : null;
+
+          const teamBtn = document.createElement("button");
+          teamBtn.type = "button";
+          teamBtn.className = "league-team";
+          if (league) {
+            teamBtn.style.borderColor = league.color;
+          }
+
+          const top = document.createElement("span");
+          top.textContent = teamName;
+          const bottom = document.createElement("small");
+          bottom.textContent = league ? ("Liga: " + league.name) : "Liga: brak";
+
+          teamBtn.appendChild(top);
+          teamBtn.appendChild(bottom);
+
+          teamBtn.addEventListener("click", () => {
+            if (!leagueState.activeLeagueId) return;
+            if (leagueState.assignments[key] === leagueState.activeLeagueId) {
+              delete leagueState.assignments[key];
+            } else {
+              leagueState.assignments[key] = leagueState.activeLeagueId;
+            }
+            renderLeagueOverlay();
+          });
+
+          teamsWrap.appendChild(teamBtn);
+        }
+      }
+
+      if (teamsWrap.children.length === 0) {
+        const noTeams = document.createElement("p");
+        noTeams.className = "muted";
+        noTeams.textContent = "Brak druzyn do wyswietlenia. Najpierw utworz koszyki.";
+        els.leaguePanel.appendChild(noTeams);
+      } else {
+        els.leaguePanel.appendChild(teamsWrap);
+      }
+    }
+
+    function showLeagueOverlay() {
+      renderLeagueOverlay();
+      els.leagueOverlay.classList.add("show");
+    }
+
+    function hideLeagueOverlay() {
+      els.leagueOverlay.classList.remove("show");
+    }
+
+    function createLeague() {
+      const name = prompt("Nazwa ligi:");
+      if (name === null) return;
+      const clean = name.trim();
+      if (!clean) return;
+      const id = "lg_" + Date.now() + "_" + Math.floor(Math.random() * 100000);
+      const color = leagueColorByIndex(leagueState.leagues.length);
+      leagueState.leagues.push({ id, name: clean, color });
+      leagueState.activeLeagueId = id;
+      renderLeagueOverlay();
+    }
+
+    function buildPotInputs() {
+      clearStatus();
+      els.roundsContainer.innerHTML = "";
+      els.reportContainer.innerHTML = "";
+      els.checkValidityWrap.classList.remove("show");
+      lastDraw = null;
+
+      const cfg = sanitizeConfig();
+      const current = readPotsFromInputs();
+      els.potsContainer.innerHTML = "";
+
+      for (let p = 0; p < cfg.potsCount; p += 1) {
+        const card = document.createElement("article");
+        card.className = "pot-card";
+
+        const h3 = document.createElement("h3");
+        h3.textContent = "Koszyk " + (p + 1);
+
+        const ta = document.createElement("textarea");
+        ta.id = "pot_" + p;
+        ta.placeholder = "Wpisz " + cfg.teamsPerPot + " drużyn, każda w nowej linii";
+
+        const existing = current[p] || [];
+        const lines = [];
+        for (let i = 0; i < cfg.teamsPerPot; i += 1) {
+          const val = (existing[i] || "").trim();
+          lines.push(val || "Druzyna " + (p + 1) + "." + (i + 1));
+        }
+        ta.value = lines.join("\n");
+
+        card.appendChild(h3);
+        card.appendChild(ta);
+        els.potsContainer.appendChild(card);
+      }
+
+      els.summary.textContent = "Koszyki gotowe. Wpisz lub popraw nazwy druzyn i kliknij losowanie.";
+    }
+
+    function readPotsFromInputs() {
+      const cfg = sanitizeConfig();
+      const pots = [];
+
+      for (let p = 0; p < cfg.potsCount; p += 1) {
+        const ta = document.getElementById("pot_" + p);
+        if (!ta) {
+          pots.push([]);
+          continue;
+        }
+
+        const names = ta.value
+          .split(/\r?\n/)
+          .map((v) => v.trim())
+          .filter((v) => v.length > 0);
+
+        pots.push(names);
+      }
+
+      return pots;
+    }
+
+    function validatePots(cfg, pots) {
+      if (pots.length !== cfg.potsCount) {
+        return "Najpierw kliknij 'Utworz pola koszykow'.";
+      }
+
+      for (let p = 0; p < cfg.potsCount; p += 1) {
+        if (pots[p].length !== cfg.teamsPerPot) {
+          return "Kazdy koszyk musi miec dokladnie " + cfg.teamsPerPot + " druzyn. Problem: koszyk " + (p + 1) + ".";
+        }
+      }
+
+      const seen = new Set();
+      for (let p = 0; p < cfg.potsCount; p += 1) {
+        for (const name of pots[p]) {
+          const key = name.toLowerCase();
+          if (seen.has(key)) {
+            return "Powtorzona nazwa druzyny: '" + name + "'. Nazwy musza byc unikalne.";
+          }
+          seen.add(key);
+        }
+      }
+
+      if (cfg.matchesPerPot > cfg.teamsPerPot) {
+        return "Meczow z koszykiem nie moze byc wiecej niz druzyn w koszyku.";
+      }
+
+      if (cfg.includeOwnPot && cfg.matchesPerPot > (cfg.teamsPerPot - 1)) {
+        return "Przy wlaczonym wlasnym koszyku meczow na koszyk nie moze byc wiecej niz " + (cfg.teamsPerPot - 1) + ".";
+      }
+
+      if (cfg.includeOwnPot && (cfg.teamsPerPot % 2 !== 0) && (cfg.matchesPerPot % 2 !== 0)) {
+        return "Dla nieparzystej liczby druzyn w koszyku i meczow wewnatrz koszyka liczba meczow na koszyk musi byc parzysta.";
+      }
+
+      return null;
+    }
+
+    function createTeams(pots) {
+      const teams = [];
+      for (let p = 0; p < pots.length; p += 1) {
+        for (let i = 0; i < pots[p].length; i += 1) {
+          const name = pots[p][i];
+          teams.push({
+            id: "p" + p + "t" + i,
+            name,
+            pot: p,
+            indexInPot: i,
+            leagueId: getLeagueIdForTeamName(name)
+          });
+        }
+      }
+      return teams;
+    }
+
+    function setConfigToInputs(cfg) {
+      els.potsCount.value = String(clampInt(cfg.potsCount, 1, MAX_POTS, 4));
+      els.teamsPerPot.value = String(clampInt(cfg.teamsPerPot, 2, MAX_TEAMS, 8));
+      els.matchesPerPot.value = String(clampInt(cfg.matchesPerPot, 1, MAX_TEAMS, 1));
+      els.includeOwnPot.checked = !!cfg.includeOwnPot;
+      els.enforceHomeAwayBalance.checked = !!cfg.enforceHomeAwayBalance;
+      els.softHomeAwayBalance.checked = !!cfg.softHomeAwayBalance;
+      els.avoidSameLeague.checked = cfg.avoidSameLeague !== false;
+      els.oncePerLeague.checked = !!cfg.oncePerLeague;
+      els.remixRoundsByTeam.checked = !!cfg.remixRoundsByTeam;
+      els.maxTwoStreak.checked = !!cfg.maxTwoStreak;
+      sanitizeConfig();
+    }
+
+    function serializeRounds(rounds) {
+      if (!Array.isArray(rounds)) return [];
+      return rounds.map((round) => round.map((m) => ({
+        home: m.home.name,
+        away: m.away.name
+      })));
+    }
+
+    function deserializeRounds(rawRounds, teamsByName) {
+      if (!Array.isArray(rawRounds)) return null;
+      const rounds = [];
+      for (const round of rawRounds) {
+        if (!Array.isArray(round)) return null;
+        const parsedRound = [];
+        for (const m of round) {
+          if (!m || typeof m.home !== "string" || typeof m.away !== "string") return null;
+          const home = teamsByName.get(m.home.toLowerCase());
+          const away = teamsByName.get(m.away.toLowerCase());
+          if (!home || !away) return null;
+          parsedRound.push({ home, away });
+        }
+        rounds.push(parsedRound);
+      }
+      return rounds;
+    }
+
+    function buildExportPayload() {
+      const cfg = sanitizeConfig();
+      const pots = readPotsFromInputs();
+      return {
+        version: 1,
+        exportedAt: new Date().toISOString(),
+        config: {
+          potsCount: cfg.potsCount,
+          teamsPerPot: cfg.teamsPerPot,
+          matchesPerPot: cfg.matchesPerPot,
+          includeOwnPot: cfg.includeOwnPot,
+          enforceHomeAwayBalance: cfg.enforceHomeAwayBalance,
+          softHomeAwayBalance: cfg.softHomeAwayBalance,
+          avoidSameLeague: cfg.avoidSameLeague,
+          oncePerLeague: cfg.oncePerLeague,
+          remixRoundsByTeam: cfg.remixRoundsByTeam,
+          maxTwoStreak: cfg.maxTwoStreak
+        },
+        pots,
+        rounds: lastDraw ? serializeRounds(lastDraw.rounds) : [],
+        summary: els.summary.textContent || "",
+        leagues: {
+          leagues: leagueState.leagues.map((l) => ({ id: l.id, name: l.name, color: l.color })),
+          assignments: { ...leagueState.assignments }
+        }
+      };
+    }
+
+    function showBugOverlay() {
+      els.bugOverlay.classList.add("show");
+    }
+
+    function hideBugOverlay() {
+      els.bugOverlay.classList.remove("show");
+    }
+
+    function showSeedOverlay() {
+      const cfg = sanitizeConfig();
+      els.seedPotsCount.value = String(cfg.potsCount);
+      els.seedOverlay.classList.add("show");
+    }
+
+    function hideSeedOverlay() {
+      els.seedOverlay.classList.remove("show");
+    }
+
+    function showSeedError(message) {
+      els.seedErrorText.textContent = message;
+      els.seedErrorOverlay.classList.add("show");
+    }
+
+    function hideSeedError() {
+      els.seedErrorOverlay.classList.remove("show");
+    }
+
+    function exportStateToFile() {
+      const payload = buildExportPayload();
+      const json = JSON.stringify(payload, null, 2);
+      const blob = new Blob([json], { type: "application/json;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "ucl-pot-draw-export.json";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      showStatus("Plik JSON zostal pobrany.", false);
+    }
+
+    function importStateData(data) {
+      if (!data || !data.config || !Array.isArray(data.pots)) {
+        showStatus("Brak wymaganych danych: config/pots.", true);
+        return;
+      }
+
+      setConfigToInputs(data.config);
+      buildPotInputs();
+
+      const cfg = sanitizeConfig();
+      for (let p = 0; p < cfg.potsCount; p += 1) {
+        const ta = document.getElementById("pot_" + p);
+        const list = Array.isArray(data.pots[p]) ? data.pots[p] : [];
+        if (ta) ta.value = list.join("\n");
+      }
+
+      const pots = readPotsFromInputs();
+      const err = validatePots(cfg, pots);
+      if (err) {
+        showStatus("Import ustawien udany, ale dane koszykow sa niepoprawne: " + err, true);
+        return;
+      }
+
+      const teams = createTeams(pots);
+      const teamsByName = new Map(teams.map((t) => [t.name.toLowerCase(), t]));
+      let importedRounds = [];
+      if (Array.isArray(data.rounds) && data.rounds.length > 0) {
+        importedRounds = deserializeRounds(data.rounds, teamsByName);
+        if (!importedRounds) {
+          showStatus("Zaimportowano ustawienia i koszyki, ale nie udalo sie odtworzyc kolejek.", true);
+          return;
+        }
+      }
+
+      els.roundsContainer.innerHTML = "";
+      els.reportContainer.innerHTML = "";
+      if (importedRounds.length > 0) {
+        renderRounds(importedRounds);
+        lastDraw = { rounds: importedRounds, teams, cfg };
+        els.checkValidityWrap.classList.add("show");
+      } else {
+        lastDraw = null;
+        els.checkValidityWrap.classList.remove("show");
+      }
+
+      if (typeof data.summary === "string" && data.summary.trim()) {
+        els.summary.textContent = data.summary;
+      } else {
+        els.summary.textContent = "Dane zaladowane. Jesli nie bylo kolejek w imporcie, wykonaj losowanie.";
+      }
+
+      if (data.leagues && Array.isArray(data.leagues.leagues) && data.leagues.assignments && typeof data.leagues.assignments === "object") {
+        leagueState.leagues = data.leagues.leagues
+          .filter((l) => l && typeof l.id === "string" && typeof l.name === "string")
+          .map((l, idx) => ({
+            id: l.id,
+            name: l.name.trim() || ("Liga " + (idx + 1)),
+            color: typeof l.color === "string" && l.color ? l.color : leagueColorByIndex(idx)
+          }));
+        leagueState.assignments = { ...data.leagues.assignments };
+      } else {
+        leagueState.leagues = [];
+        leagueState.assignments = {};
+      }
+      leagueState.activeLeagueId = null;
+      pruneLeagueAssignmentsToCurrentTeams();
+
+      showStatus("Import danych zakonczony pomyslnie.", false);
+      hideBugOverlay();
+    }
+
+    function openImportFileDialog() {
+      els.importJsonFile.value = "";
+      els.importJsonFile.click();
+    }
+
+    function importStateFromFile(e) {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = () => {
+        let data;
+        try {
+          data = JSON.parse(String(reader.result || ""));
+        } catch (err) {
+          showStatus("Niepoprawny plik JSON.", true);
+          return;
+        }
+        importStateData(data);
+      };
+      reader.onerror = () => {
+        showStatus("Nie udalo sie odczytac pliku.", true);
+      };
+      reader.readAsText(file, "utf-8");
+    }
+
+    function applySeedToPots() {
+      const raw = els.seedTeamsArea.value
+        .split(/\r?\n/)
+        .map((v) => v.trim())
+        .filter((v) => v.length > 0);
+
+      const potsCount = clampInt(els.seedPotsCount.value, 1, MAX_POTS, 4);
+      const teamsCount = raw.length;
+      if (teamsCount === 0) {
+        showStatus("Podaj przynajmniej jedna druzyne.", true);
+        return;
+      }
+
+      if (teamsCount % potsCount !== 0) {
+        showSeedError(
+          "Nieodpowiednia ilosc druzyn: " + teamsCount + ". Dla " + potsCount + " koszykow liczba druzyn musi dzielic sie bez reszty."
+        );
+        return;
+      }
+
+      const lowerSeen = new Set();
+      for (const name of raw) {
+        const k = name.toLowerCase();
+        if (lowerSeen.has(k)) {
+          showStatus("Powtorzona nazwa druzyny na liscie: '" + name + "'.", true);
+          return;
+        }
+        lowerSeen.add(k);
+      }
+
+      const shuffled = shuffle([...raw]);
+      const teamsPerPot = teamsCount / potsCount;
+
+      els.potsCount.value = String(potsCount);
+      els.teamsPerPot.value = String(teamsPerPot);
+      sanitizeConfig();
+      buildPotInputs();
+
+      for (let p = 0; p < potsCount; p += 1) {
+        const ta = document.getElementById("pot_" + p);
+        const part = shuffled.slice(p * teamsPerPot, (p + 1) * teamsPerPot);
+        if (ta) ta.value = part.join("\n");
+      }
+
+      hideSeedOverlay();
+      hideBugOverlay();
+      showStatus(
+        "Druzyny przylosowane do koszykow. Koszyki: " + potsCount + ", druzyn na koszyk: " + teamsPerPot + ".",
+        false
+      );
+    }
+
+    function pairKey(aId, bId) {
+      return aId < bId ? aId + "|" + bId : bId + "|" + aId;
+    }
+
+    function orientEdgesEuler(matches, teams) {
+      const edges = matches.map((m, idx) => ({
+        idx,
+        a: m.home,
+        b: m.away
+      }));
+
+      const adj = new Map();
+      for (const t of teams) adj.set(t.id, []);
+      for (const e of edges) {
+        adj.get(e.a.id).push({ edgeIdx: e.idx, otherId: e.b.id });
+        adj.get(e.b.id).push({ edgeIdx: e.idx, otherId: e.a.id });
+      }
+
+      const used = new Array(edges.length).fill(false);
+      const oriented = new Array(edges.length).fill(null);
+
+      for (const t of teams) {
+        const startId = t.id;
+        const stack = [{ v: startId, inEdge: -1 }];
+        while (stack.length > 0) {
+          const top = stack[stack.length - 1];
+          const list = adj.get(top.v);
+          while (list.length > 0 && used[list[list.length - 1].edgeIdx]) {
+            list.pop();
+          }
+          if (list.length === 0) {
+            const finished = stack.pop();
+            if (finished.inEdge !== -1) {
+              const prev = stack[stack.length - 1];
+              oriented[finished.inEdge] = { homeId: prev.v, awayId: finished.v };
+            }
+          } else {
+            const next = list.pop();
+            if (used[next.edgeIdx]) continue;
+            used[next.edgeIdx] = true;
+            stack.push({ v: next.otherId, inEdge: next.edgeIdx });
+          }
+        }
+      }
+
+      if (oriented.some((o) => !o)) return null;
+
+      const teamById = new Map(teams.map((t) => [t.id, t]));
+      return matches.map((m, i) => ({
+        home: teamById.get(oriented[i].homeId),
+        away: teamById.get(oriented[i].awayId)
+      }));
+    }
+
+    function isBlockedLeaguePair(a, b, cfg) {
+      if (!cfg.avoidSameLeague) return false;
+      return !!(a.leagueId && b.leagueId && a.leagueId === b.leagueId);
+    }
+
+    function tryPerfectMatching(left, right, canPair) {
+      const n = left.length;
+      const neighbors = [];
+      for (let li = 0; li < n; li += 1) {
+        const ids = [];
+        for (let ri = 0; ri < n; ri += 1) {
+          if (canPair(left[li], right[ri])) ids.push(ri);
+        }
+        shuffle(ids);
+        neighbors.push(ids);
+      }
+
+      const matchR = new Array(n).fill(-1);
+      function dfs(li, seen) {
+        for (const ri of neighbors[li]) {
+          if (seen[ri]) continue;
+          seen[ri] = true;
+          if (matchR[ri] === -1 || dfs(matchR[ri], seen)) {
+            matchR[ri] = li;
+            return true;
+          }
+        }
+        return false;
+      }
+
+      for (let li = 0; li < n; li += 1) {
+        const seen = new Array(n).fill(false);
+        if (!dfs(li, seen)) return null;
+      }
+
+      const out = [];
+      for (let ri = 0; ri < n; ri += 1) {
+        const li = matchR[ri];
+        if (li < 0) return null;
+        out.push([left[li], right[ri]]);
+      }
+      return out;
+    }
+
+    function makeCrossPotRounds(potA, potB, roundsCount, cfg) {
+      const n = potA.length;
+      const used = new Set();
+      const rounds = [];
+
+      for (let r = 0; r < roundsCount; r += 1) {
+        let okRound = null;
+        for (let attempt = 0; attempt < 90; attempt += 1) {
+          const left = shuffle([...potA]);
+          const right = shuffle([...potB]);
+          const matching = tryPerfectMatching(left, right, (a, b) => {
+            if (isBlockedLeaguePair(a, b, cfg)) return false;
+            const k = pairKey(a.id, b.id);
+            return !used.has(k);
+          });
+          if (!matching) continue;
+          okRound = matching;
+          break;
+        }
+        if (!okRound) return null;
+        for (const [a, b] of okRound) used.add(pairKey(a.id, b.id));
+        rounds.push(okRound);
+      }
+
+      return rounds;
+    }
+
+    function makeIntraPotRounds(potTeams, roundsCount, cfg) {
+      const n = potTeams.length;
+      const k = roundsCount;
+      if (k < 0 || k > (n - 1)) return null;
+      if (k === 0) return [];
+      if ((n * k) % 2 !== 0) return null;
+
+      const blocked = new Set();
+      for (let i = 0; i < n; i += 1) {
+        for (let j = i + 1; j < n; j += 1) {
+          if (isBlockedLeaguePair(potTeams[i], potTeams[j], cfg)) {
+            blocked.add(i + "|" + j);
+          }
+        }
+      }
+
+      const allowedCount = new Array(n).fill(0);
+      for (let i = 0; i < n; i += 1) {
+        for (let j = 0; j < n; j += 1) {
+          if (i === j) continue;
+          const a = Math.min(i, j);
+          const b = Math.max(i, j);
+          if (!blocked.has(a + "|" + b)) allowedCount[i] += 1;
+        }
+      }
+      for (let i = 0; i < n; i += 1) {
+        if (allowedCount[i] < k) return null;
+      }
+
+      let edgePairs = null;
+      for (let attempt = 0; attempt < 420; attempt += 1) {
+        const rem = new Array(n).fill(k);
+        const used = new Set();
+        const edges = [];
+        let ok = true;
+
+        while (true) {
+          let maxNeed = 0;
+          let v = -1;
+          for (let i = 0; i < n; i += 1) {
+            if (rem[i] > maxNeed) {
+              maxNeed = rem[i];
+              v = i;
+            }
+          }
+          if (maxNeed === 0) break;
+
+          const candidates = [];
+          for (let u = 0; u < n; u += 1) {
+            if (u === v || rem[u] <= 0) continue;
+            const a = Math.min(u, v);
+            const b = Math.max(u, v);
+            const k2 = a + "|" + b;
+            if (blocked.has(k2) || used.has(k2)) continue;
+            candidates.push(u);
+          }
+          if (candidates.length === 0) {
+            ok = false;
+            break;
+          }
+
+          candidates.sort((x, y) => rem[y] - rem[x]);
+          const topN = Math.min(4, candidates.length);
+          const pick = candidates[randInt(topN)];
+          const a = Math.min(v, pick);
+          const b = Math.max(v, pick);
+          const k2 = a + "|" + b;
+
+          used.add(k2);
+          edges.push([a, b]);
+          rem[a] -= 1;
+          rem[b] -= 1;
+
+          for (let i = 0; i < n; i += 1) {
+            if (rem[i] <= 0) continue;
+            let canStill = 0;
+            for (let j = 0; j < n; j += 1) {
+              if (j === i || rem[j] <= 0) continue;
+              const aa = Math.min(i, j);
+              const bb = Math.max(i, j);
+              const kk = aa + "|" + bb;
+              if (blocked.has(kk) || used.has(kk)) continue;
+              canStill += 1;
+            }
+            if (canStill < rem[i]) {
+              ok = false;
+              break;
+            }
+          }
+          if (!ok) break;
+        }
+
+        if (!ok) continue;
+        edgePairs = edges;
+        break;
+      }
+      if (!edgePairs) return null;
+
+      const rounds = [];
+      const packed = shuffle([...edgePairs]);
+      for (const [ia, ib] of packed) {
+        let placed = false;
+        for (const round of rounds) {
+          if (round.used.has(ia) || round.used.has(ib)) continue;
+          round.matches.push([potTeams[ia], potTeams[ib]]);
+          round.used.add(ia);
+          round.used.add(ib);
+          placed = true;
+          break;
+        }
+        if (!placed) {
+          rounds.push({
+            matches: [[potTeams[ia], potTeams[ib]]],
+            used: new Set([ia, ib])
+          });
+        }
+      }
+
+      return shuffle(rounds.map((r) => shuffle(r.matches)));
+    }
+
+    function generateMiniRounds(cfg, teams) {
+      const potTeams = [];
+      for (let p = 0; p < cfg.potsCount; p += 1) {
+        potTeams.push(teams.filter((t) => t.pot === p));
+      }
+
+      const crossByPair = new Map();
+      const ownByPot = new Map();
+      const usedPairs = new Set();
+      for (let a = 0; a < cfg.potsCount; a += 1) {
+        for (let b = a; b < cfg.potsCount; b += 1) {
+          if (a === b && !cfg.includeOwnPot) continue;
+
+          const miniRounds = a === b
+            ? makeIntraPotRounds(potTeams[a], cfg.matchesPerPot, cfg)
+            : makeCrossPotRounds(potTeams[a], potTeams[b], cfg.matchesPerPot, cfg);
+
+          for (const mini of miniRounds) {
+            for (const [home, away] of mini) {
+              if (home.id === away.id) {
+                return null;
+              }
+
+              const k = pairKey(home.id, away.id);
+              if (usedPairs.has(k)) {
+                return null;
+              }
+              usedPairs.add(k);
+            }
+          }
+
+          if (a === b) {
+            ownByPot.set(a, miniRounds.map((matches) => ({
+              potA: a,
+              potB: a,
+              matches
+            })));
+          } else {
+            crossByPair.set(pairKey("pot" + a, "pot" + b), miniRounds.map((matches) => ({
+              potA: a,
+              potB: b,
+              matches
+            })));
+          }
+        }
+      }
+
+      return { crossByPair, ownByPot };
+    }
+
+    function roundRobinPotRounds(potsCount) {
+      const withGhost = potsCount % 2 !== 0;
+      const ghost = -1;
+      const arr = [];
+
+      for (let i = 0; i < potsCount; i += 1) arr.push(i);
+      if (withGhost) arr.push(ghost);
+
+      const rounds = [];
+      const n = arr.length;
+      const roundsCount = n - 1;
+
+      for (let r = 0; r < roundsCount; r += 1) {
+        const pairs = [];
+        let byePot = null;
+
+        for (let i = 0; i < n / 2; i += 1) {
+          const left = arr[i];
+          const right = arr[n - 1 - i];
+
+          if (left === ghost) byePot = right;
+          else if (right === ghost) byePot = left;
+          else pairs.push([left, right]);
+        }
+
+        rounds.push({ pairs, byePot });
+
+        const fixed = arr[0];
+        const rest = arr.slice(1);
+        rest.unshift(rest.pop());
+        arr.splice(0, arr.length, fixed, ...rest);
+      }
+
+      return rounds;
+    }
+
+    function buildRounds(cfg, miniData) {
+      const rounds = [];
+      const basePotRounds = roundRobinPotRounds(cfg.potsCount);
+      const pairOffset = new Map();
+      const ownOffset = new Map();
+
+      for (let rep = 0; rep < cfg.matchesPerPot; rep += 1) {
+        for (const baseRound of basePotRounds) {
+          const current = [];
+
+          for (const [a, b] of baseRound.pairs) {
+            const key = pairKey("pot" + a, "pot" + b);
+            const minis = miniData.crossByPair.get(key);
+            if (!minis || minis.length === 0) return null;
+
+            const offs = pairOffset.get(key) || 0;
+            const idx = (offs + rep) % minis.length;
+            current.push(...minis[idx].matches);
+          }
+
+          if (cfg.includeOwnPot && baseRound.byePot !== null) {
+            const minis = miniData.ownByPot.get(baseRound.byePot);
+            if (!minis || minis.length === 0) return null;
+
+            const offs = ownOffset.get(baseRound.byePot) || 0;
+            const idx = offs % minis.length;
+            current.push(...minis[idx].matches);
+            ownOffset.set(baseRound.byePot, offs + 1);
+          }
+
+          rounds.push(current.map((m) => ({
+            home: m[0],
+            away: m[1]
+          })));
+        }
+      }
+
+      if (cfg.includeOwnPot && cfg.potsCount % 2 === 0) {
+        let ownRounds = 0;
+        for (let p = 0; p < cfg.potsCount; p += 1) {
+          const minis = miniData.ownByPot.get(p);
+          ownRounds = Math.max(ownRounds, minis ? minis.length : 0);
+        }
+        for (let r = 0; r < ownRounds; r += 1) {
+          const current = [];
+          for (let p = 0; p < cfg.potsCount; p += 1) {
+            const minis = miniData.ownByPot.get(p);
+            if (!minis || minis.length === 0) return null;
+            const idx = r % minis.length;
+            current.push(...minis[idx].matches);
+          }
+          rounds.push(current.map((m) => ({
+            home: m[0],
+            away: m[1]
+          })));
+        }
+      }
+
+      return rounds;
+    }
+
+    function finalizeRounds(rounds) {
+      const out = rounds.filter((r) => r.length > 0).map((r) => shuffle([...r]));
+      return shuffle(out);
+    }
+
+    function findPerfectMatchingFromAdj(teamIds, adjMap) {
+      const unmatched = new Set(teamIds);
+      const pairs = [];
+
+      function backtrack() {
+        if (unmatched.size === 0) return true;
+
+        let pick = null;
+        let pickCandidates = null;
+
+        for (const id of unmatched) {
+          const candidates = [];
+          const nei = adjMap.get(id);
+          if (nei) {
+            for (const other of nei) {
+              if (unmatched.has(other)) candidates.push(other);
+            }
+          }
+          if (candidates.length === 0) return false;
+          if (!pickCandidates || candidates.length < pickCandidates.length) {
+            pick = id;
+            pickCandidates = candidates;
+            if (pickCandidates.length === 1) break;
+          }
+        }
+
+        shuffle(pickCandidates);
+        unmatched.delete(pick);
+        for (const other of pickCandidates) {
+          if (!unmatched.has(other)) continue;
+          unmatched.delete(other);
+          pairs.push([pick, other]);
+          if (backtrack()) return true;
+          pairs.pop();
+          unmatched.add(other);
+        }
+        unmatched.add(pick);
+        return false;
+      }
+
+      const ok = backtrack();
+      return ok ? pairs : null;
+    }
+
+    function repackRoundsStrict(rounds, teams, targetRounds) {
+      const totalTeams = teams.length;
+      if (totalTeams % 2 !== 0) return null;
+
+      const flat = [];
+      for (const round of rounds) {
+        for (const m of round) flat.push(m);
+      }
+      const expectedTotal = (totalTeams * targetRounds) / 2;
+      if (flat.length !== expectedTotal) return null;
+
+      const byPair = new Map();
+      const adj = new Map();
+      const teamIds = teams.map((t) => t.id);
+      for (const id of teamIds) adj.set(id, new Set());
+
+      for (const m of flat) {
+        const key = pairKey(m.home.id, m.away.id);
+        if (byPair.has(key)) return null;
+        byPair.set(key, m);
+        adj.get(m.home.id).add(m.away.id);
+        adj.get(m.away.id).add(m.home.id);
+      }
+
+      const packedRounds = [];
+      for (let r = 0; r < targetRounds; r += 1) {
+        const matching = findPerfectMatchingFromAdj(teamIds, adj);
+        if (!matching) return null;
+
+        const round = [];
+        for (const [a, b] of matching) {
+          const key = pairKey(a, b);
+          const matchObj = byPair.get(key);
+          if (!matchObj) return null;
+          round.push(matchObj);
+
+          byPair.delete(key);
+          adj.get(a).delete(b);
+          adj.get(b).delete(a);
+        }
+        packedRounds.push(round);
+      }
+
+      if (byPair.size !== 0) return null;
+      return packedRounds;
+    }
+
+    function respectsOncePerLeague(rounds, teams, cfg) {
+      if (!cfg.oncePerLeague) return true;
+
+      const teamById = new Map(teams.map((t) => [t.id, t]));
+      const perTeam = new Map();
+      for (const t of teams) perTeam.set(t.id, new Map());
+
+      for (const round of rounds) {
+        for (const m of round) {
+          const h = teamById.get(m.home.id);
+          const a = teamById.get(m.away.id);
+          if (!h || !a) return false;
+
+          if (a.leagueId) {
+            const mapH = perTeam.get(h.id);
+            const c = (mapH.get(a.leagueId) || 0) + 1;
+            if (c > 1) return false;
+            mapH.set(a.leagueId, c);
+          }
+
+          if (h.leagueId) {
+            const mapA = perTeam.get(a.id);
+            const c = (mapA.get(h.leagueId) || 0) + 1;
+            if (c > 1) return false;
+            mapA.set(h.leagueId, c);
+          }
+        }
+      }
+
+      return true;
+    }
+
+    function hasSameLeagueCollision(rounds, cfg) {
+      if (!cfg.avoidSameLeague) return false;
+      for (const round of rounds) {
+        for (const m of round) {
+          if (m.home.leagueId && m.away.leagueId && m.home.leagueId === m.away.leagueId) {
+            return true;
+          }
+        }
+      }
+      return false;
+    }
+
+    function canUseFallbackPreview(rounds, teams, cfg) {
+      if (!rounds || rounds.length === 0) return false;
+      if (hasSameLeagueCollision(rounds, cfg)) return false;
+      if (!respectsOncePerLeague(rounds, teams, cfg)) return false;
+      if (cfg.maxTwoStreak && homeAwayStreakPenalty(rounds, teams) > 0) return false;
+      return true;
+    }
+
+    function streakPenalty(rounds, teams, maxAllowed) {
+      const teamState = new Map();
+      for (const t of teams) {
+        teamState.set(t.id, { last: "", streak: 0 });
+      }
+
+      let penalty = 0;
+      for (const round of rounds) {
+        const mark = new Map();
+        for (const m of round) {
+          mark.set(m.home.id, "H");
+          mark.set(m.away.id, "A");
+        }
+        for (const t of teams) {
+          const state = teamState.get(t.id);
+          const side = mark.get(t.id) || "";
+          if (!side) {
+            state.last = "";
+            state.streak = 0;
+            continue;
+          }
+          if (state.last === side) state.streak += 1;
+          else {
+            state.last = side;
+            state.streak = 1;
+          }
+          if (state.streak > maxAllowed) penalty += (state.streak - maxAllowed);
+        }
+      }
+      return penalty;
+    }
+
+    function homeAwayStreakPenalty(rounds, teams) {
+      return streakPenalty(rounds, teams, 2);
+    }
+
+    function buildTeamRoundMarks(rounds, teams) {
+      const byTeam = new Map();
+      for (const t of teams) byTeam.set(t.id, new Array(rounds.length).fill(""));
+      for (let r = 0; r < rounds.length; r += 1) {
+        for (const m of rounds[r]) {
+          const h = byTeam.get(m.home.id);
+          const a = byTeam.get(m.away.id);
+          if (h) h[r] = "H";
+          if (a) a[r] = "A";
+        }
+      }
+      return byTeam;
+    }
+
+    function longestStreakInfo(rounds, teams, maxAllowed) {
+      const marks = buildTeamRoundMarks(rounds, teams);
+      let best = null;
+      for (const t of teams) {
+        const arr = marks.get(t.id) || [];
+        let last = "";
+        let streak = 0;
+        let start = -1;
+        for (let i = 0; i < arr.length; i += 1) {
+          const cur = arr[i];
+          if (!cur) {
+            last = "";
+            streak = 0;
+            start = -1;
+            continue;
+          }
+          if (cur === last) {
+            streak += 1;
+          } else {
+            last = cur;
+            streak = 1;
+            start = i;
+          }
+          if (streak > maxAllowed) {
+            if (!best || streak > best.streak) {
+              best = { teamId: t.id, side: cur, start, end: i, streak };
+            }
+          }
+        }
+      }
+      return best;
+    }
+
+    function findMatchIndexForTeam(round, teamId) {
+      for (let i = 0; i < round.length; i += 1) {
+        const m = round[i];
+        if (m.home.id === teamId || m.away.id === teamId) return i;
+      }
+      return -1;
+    }
+
+    function homeCountDeviation(rounds, teams, matchesPerTeam) {
+      const target = matchesPerTeam / 2;
+      const home = new Map(teams.map((t) => [t.id, 0]));
+      for (const round of rounds) {
+        for (const m of round) home.set(m.home.id, home.get(m.home.id) + 1);
+      }
+      let dev = 0;
+      for (const t of teams) dev += Math.abs(home.get(t.id) - target);
+      return dev;
+    }
+
+    function cloneRounds(rounds) {
+      return rounds.map((round) => round.map((m) => ({ home: m.home, away: m.away })));
+    }
+
+    function enforceMaxTwoStreakIfNeeded(rounds, teams, cfg, deadlineMs, budgetMs, matchesPerTeam, maxAllowed) {
+      if (!cfg.maxTwoStreak) return rounds;
+      const allowed = Number.isInteger(maxAllowed) ? maxAllowed : 2;
+      if (streakPenalty(rounds, teams, allowed) === 0) return rounds;
+
+      const budget = typeof budgetMs === "number" ? budgetMs : 220;
+      const localDeadline = Math.min(deadlineMs || (nowMs() + budget), nowMs() + budget);
+      const out = cloneRounds(rounds);
+
+      let currentPenalty = streakPenalty(out, teams, allowed);
+      if (currentPenalty === 0) return out;
+
+      const maxSteps = Math.max(220, Math.min(2400, budget * 7));
+      for (let step = 0; step < maxSteps; step += 1) {
+        if (nowMs() > localDeadline) break;
+        const worst = longestStreakInfo(out, teams, allowed);
+        if (!worst) return out;
+
+        const candidates = [];
+        for (let r = worst.start; r <= worst.end; r += 1) {
+          const mi = findMatchIndexForTeam(out[r], worst.teamId);
+          if (mi >= 0) candidates.push({ r, mi });
+        }
+        if (candidates.length === 0) break;
+
+        const pick = candidates[randInt(candidates.length)];
+        const match = out[pick.r][pick.mi];
+        const oldHome = match.home;
+        const oldAway = match.away;
+        match.home = oldAway;
+        match.away = oldHome;
+
+        const nextPenalty = streakPenalty(out, teams, allowed);
+
+        let accept = nextPenalty <= currentPenalty;
+        if (!accept && cfg.softHomeAwayBalance && typeof matchesPerTeam === "number") {
+          const newDev = homeCountDeviation(out, teams, matchesPerTeam);
+          match.home = oldHome;
+          match.away = oldAway;
+          const baseDev = homeCountDeviation(out, teams, matchesPerTeam);
+          match.home = oldAway;
+          match.away = oldHome;
+          accept = nextPenalty < currentPenalty || (nextPenalty === currentPenalty && newDev <= baseDev);
+        }
+
+        if (cfg.enforceHomeAwayBalance) {
+          match.home = oldHome;
+          match.away = oldAway;
+          accept = false;
+        }
+
+        if (accept) {
+          currentPenalty = nextPenalty;
+          if (currentPenalty === 0) return out;
+        } else {
+          match.home = oldHome;
+          match.away = oldAway;
+        }
+      }
+
+      return null;
+    }
+
+    function tryBuildFallbackPreview(cfg, teams, matchesPerTeam, attempts, deadlineMs, seenSignatures, unlimitedMode) {
+      let staleDuplicates = 0;
+      for (let i = 0; i < attempts; i += 1) {
+        if (nowMs() > deadlineMs) break;
+        const miniData = generateMiniRounds(cfg, teams);
+        if (!miniData) continue;
+        const candidate = buildRounds(cfg, miniData);
+        if (!candidate) continue;
+        const balanced = enforceHomeAwayIfNeeded(candidate, teams, cfg, matchesPerTeam);
+        if (!balanced) continue;
+        const remixed = remixTeamMatchesAcrossRounds(balanced, cfg);
+        const finalized = finalizeRounds(remixed);
+        if (seenSignatures) {
+          const sig = roundsSignature(finalized);
+          if (seenSignatures.has(sig)) {
+            staleDuplicates += 1;
+            if (unlimitedMode && staleDuplicates > 3500) break;
+            continue;
+          }
+          seenSignatures.add(sig);
+          staleDuplicates = 0;
+        }
+        let preview = enforceMaxTwoStreakIfNeeded(finalized, teams, cfg, deadlineMs, 800, matchesPerTeam, 2);
+        if (!preview && cfg.maxTwoStreak) {
+          preview = enforceMaxTwoStreakIfNeeded(finalized, teams, cfg, deadlineMs, 800, matchesPerTeam, 1);
+        }
+        if (!preview) continue;
+        if (canUseFallbackPreview(preview, teams, cfg)) return preview;
+      }
+      return null;
+    }
+
+    function orientRoundsSoftHomeAway(rounds, teams, matchesPerTeam) {
+      const out = rounds.map((r) => r.map((m) => ({ home: m.home, away: m.away })));
+      const refs = [];
+      for (let r = 0; r < out.length; r += 1) {
+        for (let m = 0; m < out[r].length; m += 1) refs.push({ roundIdx: r, matchIdx: m });
+      }
+
+      shuffle(refs);
+      const homeCount = new Map(teams.map((t) => [t.id, 0]));
+      const targetHome = matchesPerTeam / 2;
+
+      function localScore(homeA, homeB) {
+        return Math.abs(homeA - targetHome) + Math.abs(homeB - targetHome);
+      }
+
+      for (const ref of refs) {
+        const match = out[ref.roundIdx][ref.matchIdx];
+        const a = match.home;
+        const b = match.away;
+        const aNow = homeCount.get(a.id);
+        const bNow = homeCount.get(b.id);
+
+        const scoreAB = localScore(aNow + 1, bNow);
+        const scoreBA = localScore(aNow, bNow + 1);
+
+        if (scoreBA < scoreAB || (scoreBA === scoreAB && Math.random() < 0.5)) {
+          out[ref.roundIdx][ref.matchIdx] = { home: b, away: a };
+          homeCount.set(b.id, bNow + 1);
+        } else {
+          homeCount.set(a.id, aNow + 1);
+        }
+      }
+
+      function sq(x) {
+        return x * x;
+      }
+
+      const improveAttempts = Math.max(1200, refs.length * 35);
+      for (let i = 0; i < improveAttempts; i += 1) {
+        const ref = refs[randInt(refs.length)];
+        const match = out[ref.roundIdx][ref.matchIdx];
+        const h = match.home;
+        const a = match.away;
+        const hCount = homeCount.get(h.id);
+        const aCount = homeCount.get(a.id);
+
+        const before = sq(hCount - targetHome) + sq(aCount - targetHome);
+        const after = sq((hCount - 1) - targetHome) + sq((aCount + 1) - targetHome);
+        if (after < before || (after === before && Math.random() < 0.02)) {
+          out[ref.roundIdx][ref.matchIdx] = { home: a, away: h };
+          homeCount.set(h.id, hCount - 1);
+          homeCount.set(a.id, aCount + 1);
+        }
+      }
+
+      return out;
+    }
+
+    function enforceHomeAwayIfNeeded(rounds, teams, cfg, matchesPerTeam) {
+      if (cfg.enforceHomeAwayBalance) {
+        if (matchesPerTeam % 2 !== 0) return null;
+
+        const flat = [];
+        for (let r = 0; r < rounds.length; r += 1) {
+          for (let m = 0; m < rounds[r].length; m += 1) {
+            flat.push({
+              roundIdx: r,
+              matchIdx: m,
+              home: rounds[r][m].home,
+              away: rounds[r][m].away
+            });
+          }
+        }
+
+        const reoriented = orientEdgesEuler(flat, teams);
+        if (!reoriented) return null;
+
+        const homeCount = new Map(teams.map((t) => [t.id, 0]));
+        for (const m of reoriented) {
+          homeCount.set(m.home.id, homeCount.get(m.home.id) + 1);
+        }
+        const targetHome = matchesPerTeam / 2;
+        for (const t of teams) {
+          if (homeCount.get(t.id) !== targetHome) return null;
+        }
+
+        const out = rounds.map((r) => r.map((m) => ({ home: m.home, away: m.away })));
+        for (let i = 0; i < flat.length; i += 1) {
+          const where = flat[i];
+          out[where.roundIdx][where.matchIdx] = {
+            home: reoriented[i].home,
+            away: reoriented[i].away
+          };
+        }
+        return out;
+      }
+
+      if (cfg.softHomeAwayBalance) {
+        return orientRoundsSoftHomeAway(rounds, teams, matchesPerTeam);
+      }
+
+      return rounds;
+    }
+
+    function pairPotKey(match) {
+      const a = match.home.pot;
+      const b = match.away.pot;
+      return a < b ? (a + "|" + b) : (b + "|" + a);
+    }
+
+    function concentrationScore(rounds) {
+      let score = 0;
+      for (const round of rounds) {
+        const counts = new Map();
+        for (const m of round) {
+          const k = pairPotKey(m);
+          counts.set(k, (counts.get(k) || 0) + 1);
+        }
+        for (const c of counts.values()) {
+          score += c * c;
+        }
+      }
+      return score;
+    }
+
+    function remixTeamMatchesAcrossRounds(rounds, cfg) {
+      if (!cfg.remixRoundsByTeam) return rounds;
+      const out = rounds.map((r) => [...r]);
+      if (out.length < 2) return out;
+
+      const teamCountsByRound = out.map((round) => {
+        const counts = new Map();
+        for (const m of round) {
+          counts.set(m.home.id, (counts.get(m.home.id) || 0) + 1);
+          counts.set(m.away.id, (counts.get(m.away.id) || 0) + 1);
+        }
+        return counts;
+      });
+
+      function removeFromRound(roundIdx, match) {
+        const cnt = teamCountsByRound[roundIdx];
+        cnt.set(match.home.id, (cnt.get(match.home.id) || 0) - 1);
+        cnt.set(match.away.id, (cnt.get(match.away.id) || 0) - 1);
+      }
+
+      function addToRound(roundIdx, match) {
+        const cnt = teamCountsByRound[roundIdx];
+        cnt.set(match.home.id, (cnt.get(match.home.id) || 0) + 1);
+        cnt.set(match.away.id, (cnt.get(match.away.id) || 0) + 1);
+      }
+
+      function canAdd(roundIdx, match) {
+        const cnt = teamCountsByRound[roundIdx];
+        if ((cnt.get(match.home.id) || 0) > 0) return false;
+        if ((cnt.get(match.away.id) || 0) > 0) return false;
+        return true;
+      }
+
+      function trySwap(r1, i1, r2, i2) {
+        if (r1 === r2) return false;
+        const m1 = out[r1][i1];
+        const m2 = out[r2][i2];
+        if (!m1 || !m2) return false;
+
+        removeFromRound(r1, m1);
+        removeFromRound(r2, m2);
+
+        const ok = canAdd(r1, m2) && canAdd(r2, m1);
+        if (ok) {
+          out[r1][i1] = m2;
+          out[r2][i2] = m1;
+          addToRound(r1, m2);
+          addToRound(r2, m1);
+          return true;
+        }
+
+        addToRound(r1, m1);
+        addToRound(r2, m2);
+        return false;
+      }
+
+      let bestScore = concentrationScore(out);
+      const attempts = Math.max(2500, out.length * 220);
+
+      for (let a = 0; a < attempts; a += 1) {
+        const r1 = randInt(out.length);
+        let r2 = randInt(out.length - 1);
+        if (r2 >= r1) r2 += 1;
+        if (out[r1].length === 0 || out[r2].length === 0) continue;
+
+        const i1 = randInt(out[r1].length);
+        const i2 = randInt(out[r2].length);
+        if (!trySwap(r1, i1, r2, i2)) continue;
+
+        const newScore = concentrationScore(out);
+        const accept = newScore <= bestScore || Math.random() < 0.04;
+        if (accept) {
+          bestScore = Math.min(bestScore, newScore);
+        } else {
+          trySwap(r1, i1, r2, i2);
+        }
+      }
+
+      return out;
+    }
+
+    function buildValidationReport(rounds, teams, cfg) {
+      const perTeam = new Map();
+      for (const t of teams) {
+        perTeam.set(t.id, {
+          team: t,
+          matches: 0,
+          home: 0,
+          away: 0,
+          selfMatch: false,
+          opponents: new Set(),
+          pots: new Set()
+        });
+      }
+
+      for (const round of rounds) {
+        for (const m of round) {
+          const h = perTeam.get(m.home.id);
+          const a = perTeam.get(m.away.id);
+          h.matches += 1;
+          h.home += 1;
+          h.opponents.add(m.away.id);
+          h.pots.add(m.away.pot);
+          if (m.home.id === m.away.id) h.selfMatch = true;
+
+          a.matches += 1;
+          a.away += 1;
+          a.opponents.add(m.home.id);
+          a.pots.add(m.home.pot);
+          if (m.home.id === m.away.id) a.selfMatch = true;
+        }
+      }
+
+      const rows = [];
+      const potsAgainst = (cfg.potsCount - 1) + (cfg.includeOwnPot ? 1 : 0);
+      const expectedMatches = cfg.matchesPerPot * potsAgainst;
+      const expectedUniqueOpponents = expectedMatches;
+      const expectedPotsFaced = potsAgainst;
+      const expectedHome = cfg.enforceHomeAwayBalance ? (expectedMatches / 2) : null;
+
+      for (const t of teams) {
+        const s = perTeam.get(t.id);
+        const mismatchMatches = s.matches !== expectedMatches;
+        const mismatchOpp = s.opponents.size !== expectedUniqueOpponents;
+        const mismatchSelf = s.selfMatch;
+        const mismatchPots = s.pots.size !== expectedPotsFaced;
+        const mismatchHomeAway = cfg.enforceHomeAwayBalance
+          ? (s.home !== s.away || s.home !== expectedHome)
+          : false;
+
+        rows.push({
+          name: t.name,
+          pot: t.pot + 1,
+          matches: s.matches,
+          uniqueOpponents: s.opponents.size,
+          selfMatch: s.selfMatch,
+          potsFaced: s.pots.size,
+          home: s.home,
+          away: s.away,
+          mismatch: mismatchMatches || mismatchOpp || mismatchSelf || mismatchPots || mismatchHomeAway,
+          mismatchMatches,
+          mismatchOpp,
+          mismatchSelf,
+          mismatchPots,
+          mismatchHomeAway
+        });
+      }
+      rows.sort((a, b) => a.name.localeCompare(b.name, "pl"));
+
+      const pairSeen = new Set();
+      let duplicatePairs = 0;
+      for (const round of rounds) {
+        for (const m of round) {
+          const k = pairKey(m.home.id, m.away.id);
+          if (pairSeen.has(k)) duplicatePairs += 1;
+          pairSeen.add(k);
+        }
+      }
+
+      const selfMatches = rows.filter((r) => r.selfMatch).length;
+      const balanceFailures = rows.filter((r) => cfg.enforceHomeAwayBalance && r.home !== r.away).length;
+      const potsMismatch = rows.filter((r) => r.mismatchPots).length;
+
+      return {
+        rows,
+        summary: {
+          teams: teams.length,
+          rounds: rounds.length,
+          duplicatePairs,
+          selfMatches,
+          balanceFailures,
+          potsMismatch
+        },
+        expected: {
+          matches: expectedMatches,
+          uniqueOpponents: expectedUniqueOpponents,
+          potsFaced: expectedPotsFaced,
+          home: expectedHome
+        }
+      };
+    }
+
+    function renderValidationReport(report, cfg) {
+      els.reportContainer.innerHTML = "";
+
+      const top = document.createElement("div");
+      top.className = "team-report";
+      top.textContent =
+        "Druzyn: " + report.summary.teams +
+        " | Kolejek: " + report.summary.rounds +
+        " | Powtorzone pary: " + report.summary.duplicatePairs +
+        " | Self-match: " + report.summary.selfMatches +
+        " | Niezgodne koszyki rywali: " + report.summary.potsMismatch +
+        (cfg.enforceHomeAwayBalance ? (" | Niezgodny bilans dom/wyjazd: " + report.summary.balanceFailures) : "");
+      els.reportContainer.appendChild(top);
+
+      const expected = document.createElement("div");
+      expected.className = "team-report";
+      expected.textContent =
+        "Oczekiwane na druzyne -> Mecze: " + report.expected.matches +
+        ", Rozni rywale: " + report.expected.uniqueOpponents +
+        ", Koszyki rywali: " + report.expected.potsFaced +
+        (cfg.enforceHomeAwayBalance ? (", Dom: " + report.expected.home + ", Wyjazd: " + report.expected.home) : "");
+      els.reportContainer.appendChild(expected);
+
+      const wrap = document.createElement("div");
+      wrap.className = "report-table-wrap";
+      const table = document.createElement("table");
+      table.className = "report-table";
+
+      const thead = document.createElement("thead");
+      const hr = document.createElement("tr");
+      ["Druzyna", "Koszyk", "Mecze", "Rozni rywale", "Koszyki rywali", "Self-match", "Dom", "Wyjazd"].forEach((h) => {
+        const th = document.createElement("th");
+        th.textContent = h;
+        hr.appendChild(th);
+      });
+      thead.appendChild(hr);
+      table.appendChild(thead);
+
+      const tbody = document.createElement("tbody");
+      for (const row of report.rows) {
+        const tr = document.createElement("tr");
+        if (row.mismatch) tr.className = "row-bad";
+
+        const cells = [
+          { v: row.name, bad: false },
+          { v: String(row.pot), bad: false },
+          { v: String(row.matches), bad: row.mismatchMatches },
+          { v: String(row.uniqueOpponents), bad: row.mismatchOpp },
+          { v: String(row.potsFaced), bad: row.mismatchPots },
+          { v: row.selfMatch ? "TAK" : "NIE", bad: row.mismatchSelf },
+          { v: String(row.home), bad: row.mismatchHomeAway },
+          { v: String(row.away), bad: row.mismatchHomeAway }
+        ];
+
+        for (const c of cells) {
+          const td = document.createElement("td");
+          td.textContent = c.v;
+          if (c.bad) td.classList.add("bad");
+          tr.appendChild(td);
+        }
+        tbody.appendChild(tr);
+      }
+      table.appendChild(tbody);
+      wrap.appendChild(table);
+      els.reportContainer.appendChild(wrap);
+    }
+
+    function checkValidity() {
+      if (!lastDraw || !lastDraw.rounds || lastDraw.rounds.length === 0) {
+        showStatus("Najpierw wykonaj losowanie meczow.", true);
+        return;
+      }
+      if (els.reportContainer.children.length > 0) {
+        els.reportContainer.innerHTML = "";
+        showStatus("Raport prawidlowosci zostal zamkniety.", false);
+        return;
+      }
+      const report = buildValidationReport(lastDraw.rounds, lastDraw.teams, lastDraw.cfg);
+      renderValidationReport(report, lastDraw.cfg);
+      showStatus("Raport prawidlowosci zostal wygenerowany.", false);
+    }
+
+    function showInspectOverlay() {
+      if (!lastDraw || !lastDraw.rounds || lastDraw.rounds.length === 0) {
+        showStatus("Najpierw wykonaj losowanie meczow.", true);
+        return;
+      }
+      renderInspectTeams();
+      els.inspectOverlay.classList.add("show");
+    }
+
+    function hideInspectOverlay() {
+      els.inspectOverlay.classList.remove("show");
+    }
+
+    function showInspectTeamOverlay(teamId) {
+      if (!lastDraw) return;
+      const team = lastDraw.teams.find((t) => t.id === teamId);
+      if (!team) return;
+
+      els.inspectTeamTitle.textContent = team.name + " - mecze";
+      els.inspectTeamMatches.innerHTML = "";
+
+      let idxCounter = 0;
+      for (let r = 0; r < lastDraw.rounds.length; r += 1) {
+        for (const m of lastDraw.rounds[r]) {
+          if (m.home.id !== team.id && m.away.id !== team.id) continue;
+          idxCounter += 1;
+          const opponent = m.home.id === team.id ? m.away : m.home;
+          const where = m.home.id === team.id ? "u siebie" : "na wyjezdzie";
+          const div = document.createElement("div");
+          div.className = "team-report";
+          div.textContent = "Mecz " + idxCounter + " | Kolejka " + (r + 1) + " | " + opponent.name + " | " + where;
+          els.inspectTeamMatches.appendChild(div);
+        }
+      }
+
+      if (idxCounter === 0) {
+        const p = document.createElement("p");
+        p.className = "muted";
+        p.textContent = "Brak meczow dla tej druzyny.";
+        els.inspectTeamMatches.appendChild(p);
+      }
+
+      els.inspectTeamOverlay.classList.add("show");
+    }
+
+    function hideInspectTeamOverlay() {
+      els.inspectTeamOverlay.classList.remove("show");
+    }
+
+    function renderInspectTeams() {
+      els.inspectTeamsContainer.innerHTML = "";
+      const teamsByPot = [];
+      for (let p = 0; p < lastDraw.cfg.potsCount; p += 1) {
+        teamsByPot.push(lastDraw.teams.filter((t) => t.pot === p).sort((a, b) => a.name.localeCompare(b.name, "pl")));
+      }
+
+      for (let p = 0; p < teamsByPot.length; p += 1) {
+        const card = document.createElement("div");
+        card.className = "inspect-pot";
+        const h = document.createElement("h4");
+        h.textContent = "Koszyk " + (p + 1);
+        card.appendChild(h);
+
+        for (const team of teamsByPot[p]) {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "inspect-team-btn";
+          btn.textContent = team.name;
+          btn.addEventListener("click", () => showInspectTeamOverlay(team.id));
+          card.appendChild(btn);
+        }
+
+        els.inspectTeamsContainer.appendChild(card);
+      }
+    }
+
+    function drawFixtures() {
+      clearStatus();
+      els.roundsContainer.innerHTML = "";
+      els.reportContainer.innerHTML = "";
+      els.checkValidityWrap.classList.remove("show");
+      lastDraw = null;
+      pendingErrorPreview = null;
+      pruneLeagueAssignmentsToCurrentTeams();
+
+      const cfg = sanitizeConfig();
+      const pots = readPotsFromInputs();
+      const err = validatePots(cfg, pots);
+      if (err) {
+        showStatus(err, true);
+        return;
+      }
+
+      const teams = createTeams(pots);
+      const potsAgainst = (cfg.potsCount - 1) + (cfg.includeOwnPot ? 1 : 0);
+      const matchesPerTeam = cfg.matchesPerPot * potsAgainst;
+      const hardMax2Search = !!cfg.maxTwoStreak;
+      const searchMode = forcedSearchMode;
+      forcedSearchMode = 0;
+      const useWideSearch = searchMode >= 1;
+      const useUnlimitedSearch = searchMode >= 2;
+      const drawDeadline = hardMax2Search
+        ? (useUnlimitedSearch ? Number.POSITIVE_INFINITY : (nowMs() + (useWideSearch ? 9000 : 3600)))
+        : (nowMs() + 2200);
+      const max2Budget = hardMax2Search ? (useUnlimitedSearch ? 1200 : (useWideSearch ? 700 : 320)) : 220;
+      const maxAttempts = hardMax2Search ? (useUnlimitedSearch ? 12000 : (useWideSearch ? 1400 : 420)) : MAX_ATTEMPTS;
+      const seenSignatures = useUnlimitedSearch ? new Set() : null;
+
+      let rounds = null;
+      let fallbackRounds = null;
+      let foundStrictWithoutMax2 = false;
+      let duplicateStreak = 0;
+      let unlimitedExhausted = false;
+      for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+        if (nowMs() > drawDeadline) break;
+        const miniData = generateMiniRounds(cfg, teams);
+        if (!miniData) continue;
+
+        const candidate = buildRounds(cfg, miniData);
+        if (!candidate) continue;
+
+        const balanced = enforceHomeAwayIfNeeded(candidate, teams, cfg, matchesPerTeam);
+        if (!balanced) continue;
+
+        if (!fallbackRounds) {
+          const previewCandidate = finalizeRounds(remixTeamMatchesAcrossRounds(balanced, cfg));
+          if (canUseFallbackPreview(previewCandidate, teams, cfg)) {
+            fallbackRounds = previewCandidate;
+          }
+        }
+
+        const strictPacked = repackRoundsStrict(balanced, teams, matchesPerTeam);
+        if (!strictPacked) continue;
+        if (!respectsOncePerLeague(strictPacked, teams, cfg)) continue;
+        foundStrictWithoutMax2 = true;
+
+        const remixed = remixTeamMatchesAcrossRounds(strictPacked, cfg);
+        const finalized = finalizeRounds(remixed);
+        if (seenSignatures) {
+          const sig = roundsSignature(finalized);
+          if (seenSignatures.has(sig)) {
+            duplicateStreak += 1;
+            if (duplicateStreak > 5500) {
+              unlimitedExhausted = true;
+              break;
+            }
+            continue;
+          }
+          seenSignatures.add(sig);
+          duplicateStreak = 0;
+        }
+        let streakChecked = enforceMaxTwoStreakIfNeeded(finalized, teams, cfg, drawDeadline, max2Budget, matchesPerTeam, 2);
+        if (!streakChecked && cfg.maxTwoStreak) {
+          streakChecked = enforceMaxTwoStreakIfNeeded(finalized, teams, cfg, drawDeadline, max2Budget, matchesPerTeam, 1);
+        }
+        if (!streakChecked) continue;
+        rounds = streakChecked;
+        break;
+      }
+
+      if (!rounds && !fallbackRounds) {
+        const extraAttempts = hardMax2Search
+          ? (cfg.oncePerLeague
+            ? (useUnlimitedSearch ? 18000 : (useWideSearch ? 2200 : 900))
+            : (useUnlimitedSearch ? 14000 : (useWideSearch ? 1800 : 700)))
+          : (cfg.oncePerLeague ? (MAX_ATTEMPTS * 4) : MAX_ATTEMPTS);
+        fallbackRounds = tryBuildFallbackPreview(
+          cfg,
+          teams,
+          matchesPerTeam,
+          extraAttempts,
+          drawDeadline,
+          seenSignatures,
+          useUnlimitedSearch
+        );
+      }
+
+      if (!rounds) {
+        const hasLeagueLimit = Object.keys(leagueState.assignments).length > 0;
+        const previewAllowed = canUseFallbackPreview(fallbackRounds, teams, cfg);
+        if (!previewAllowed) pendingErrorPreview = null;
+        if (cfg.enforceHomeAwayBalance) {
+          if (cfg.maxTwoStreak && foundStrictWithoutMax2) {
+            if (useUnlimitedSearch && unlimitedExhausted) {
+              showStatus("Dla tych ustawien to wyglada na niemozliwe: nie znaleziono nowego poprawnego ukladu nawet w nielimitowanym zakresie.", true);
+            } else if (!useWideSearch) {
+              showStatus(
+                "Nie znaleziono ukladu 50-50 z opcja 'max 2 pod rzad D/W' w aktualnym zakresie prob.",
+                true,
+                [{ label: "Sprobuj w wiekszym zakresie", onClick: retryWithWiderRange }]
+              );
+            } else if (!useUnlimitedSearch) {
+              showStatus(
+                "Nie znaleziono ukladu 50-50 z opcja 'max 2 pod rzad D/W' w wiekszym zakresie prob.",
+                true,
+                [{ label: "Sprobuj w nielimitowanym zakresie", onClick: retryWithUnlimitedRange }]
+              );
+            } else {
+              showStatus("Nie znaleziono ukladu 50-50 z opcja 'max 2 pod rzad D/W' nawet w nielimitowanym zakresie.", true);
+            }
+          } else {
+            showStatus("Nie da sie osiagnac 50-50 dom/wyjazd dla tych ustawien.", true);
+          }
+        } else if (cfg.maxTwoStreak) {
+          if (previewAllowed) {
+            pendingErrorPreview = { rounds: fallbackRounds, teams, cfg, matchesPerTeam };
+            showStatus(
+              "Nie udalo sie ulozyc kolejek z opcja 'Sprobuj max 2. pod rzad D/W' (po timeout probowano tez max 1).",
+              true,
+              [{ label: "Sprobuj z bledem", onClick: showErrorPreviewOverlay }]
+            );
+          } else {
+            showStatus("Nie udalo sie ulozyc kolejek z opcja 'Sprobuj max 2. pod rzad D/W' (po timeout probowano tez max 1).", true);
+          }
+        } else if (cfg.softHomeAwayBalance) {
+          if (previewAllowed) {
+            pendingErrorPreview = { rounds: fallbackRounds, teams, cfg, matchesPerTeam };
+            showStatus(
+              "Nie udalo sie ulozyc kolejek z opcja '+ - po rowno D/W' i warunkiem: 1 mecz druzyny na kolejke.",
+              true,
+              [{ label: "Sprobuj z bledem", onClick: showErrorPreviewOverlay }]
+            );
+          } else {
+            showStatus("Nie udalo sie ulozyc kolejek z opcja '+ - po rowno D/W' i warunkiem: 1 mecz druzyny na kolejke.", true);
+          }
+        } else if (cfg.oncePerLeague) {
+          if (previewAllowed) {
+            pendingErrorPreview = { rounds: fallbackRounds, teams, cfg, matchesPerTeam };
+            showStatus(
+              "Nie udalo sie ulozyc kolejek z opcja 'Tylko raz z dana liga'.",
+              true,
+              [{ label: "Sprobuj z bledem", onClick: showErrorPreviewOverlay }]
+            );
+          } else {
+            showStatus("Nie udalo sie ulozyc kolejek z opcja 'Tylko raz z dana liga'.", true);
+          }
+        } else if (hasLeagueLimit) {
+          if (previewAllowed) {
+            pendingErrorPreview = { rounds: fallbackRounds, teams, cfg, matchesPerTeam };
+            showStatus(
+              "Nie udalo sie ulozyc kolejek z warunkiem: 1 mecz druzyny na kolejke. Sprawdz ograniczenia lig.",
+              true,
+              [{ label: "Sprobuj z bledem", onClick: showErrorPreviewOverlay }]
+            );
+          } else {
+            showStatus("Nie udalo sie ulozyc kolejek z warunkiem: 1 mecz druzyny na kolejke. Sprawdz ograniczenia lig.", true);
+          }
+        } else {
+          if (previewAllowed) {
+            pendingErrorPreview = { rounds: fallbackRounds, teams, cfg, matchesPerTeam };
+            showStatus(
+              "Nie udalo sie ulozyc kolejek z warunkiem: 1 mecz druzyny na kolejke.",
+              true,
+              [{ label: "Sprobuj z bledem", onClick: showErrorPreviewOverlay }]
+            );
+          } else {
+            showStatus("Nie udalo sie ulozyc kolejek z warunkiem: 1 mecz druzyny na kolejke.", true);
+          }
+        }
+        return;
+      }
+
+      renderRounds(rounds);
+      lastDraw = { rounds, teams, cfg };
+      els.checkValidityWrap.classList.add("show");
+
+      const totalMatches = rounds.reduce((sum, r) => sum + r.length, 0);
+      els.summary.textContent =
+        "Wylosowano " + totalMatches + " meczow. Kolejki: " + rounds.length + ". Kazda druzyna ma " + matchesPerTeam + " meczow.";
+      showStatus("Losowanie zakonczone pomyslnie.", false);
+    }
+
+    function renderRoundsInto(container, rounds) {
+      container.innerHTML = "";
+      rounds.forEach((roundMatches, idx) => {
+        const card = document.createElement("article");
+        card.className = "round";
+        card.style.setProperty("--d", String(idx * 35) + "ms");
+
+        const title = document.createElement("h4");
+        title.textContent = "Kolejka " + (idx + 1) + " (" + roundMatches.length + " meczow)";
+        card.appendChild(title);
+
+        for (const m of roundMatches) {
+          const div = document.createElement("div");
+          div.className = "match";
+          div.textContent = m.home.name + " vs " + m.away.name;
+          card.appendChild(div);
+        }
+
+        container.appendChild(card);
+      });
+
+      if (rounds.length === 0) {
+        const p = document.createElement("p");
+        p.className = "muted";
+        p.textContent = "Brak kolejek do wyswietlenia.";
+        container.appendChild(p);
+      }
+    }
+
+    function renderRounds(rounds) {
+      renderRoundsInto(els.roundsContainer, rounds);
+    }
+
+    function showErrorPreviewOverlay() {
+      if (!pendingErrorPreview || !pendingErrorPreview.rounds) return;
+      const info = pendingErrorPreview;
+      els.errorPreviewText.textContent =
+        "Tryb awaryjny: nie udalo sie spelnic warunku '1 mecz druzyny na kolejke'. " +
+        "Ta wersja kolejek moze miec pauzy lub dodatkowe kolejki. Kolejki: " + info.rounds.length +
+        ", meczow na druzyne: " + info.matchesPerTeam + ".";
+      renderRoundsInto(els.errorPreviewRounds, info.rounds);
+      els.errorPreviewOverlay.classList.add("show");
+    }
+
+    function hideErrorPreviewOverlay() {
+      els.errorPreviewOverlay.classList.remove("show");
+    }
+
+    function retryWithWiderRange() {
+      forcedSearchMode = 1;
+      drawFixtures();
+    }
+
+    function retryWithUnlimitedRange() {
+      forcedSearchMode = 2;
+      drawFixtures();
+    }
+
+    function roundsSignature(rounds) {
+      return rounds
+        .map((round) => round
+          .map((m) => m.home.id + ">" + m.away.id)
+          .sort()
+          .join(","))
+        .join("|");
+    }
+
+    function approveErrorPreview() {
+      if (!pendingErrorPreview) return;
+      const rounds = pendingErrorPreview.rounds;
+      const teams = pendingErrorPreview.teams;
+      const cfg = pendingErrorPreview.cfg;
+      const matchesPerTeam = pendingErrorPreview.matchesPerTeam;
+      if (!canUseFallbackPreview(rounds, teams, cfg)) {
+        showStatus("Nie mozna zatwierdzic podgladu: lamie ograniczenia lig.", true);
+        hideErrorPreviewOverlay();
+        pendingErrorPreview = null;
+        return;
+      }
+
+      renderRounds(rounds);
+      lastDraw = { rounds, teams, cfg };
+      els.checkValidityWrap.classList.add("show");
+      const totalMatches = rounds.reduce((sum, r) => sum + r.length, 0);
+      els.summary.textContent =
+        "Wylosowano " + totalMatches + " meczow (tryb awaryjny). Kolejki: " + rounds.length +
+        ". Kazda druzyna ma " + matchesPerTeam + " meczow.";
+      showStatus("Zastosowano losowanie z bledem (warunek 1 mecz/kolejke nie jest spelniony).", true);
+      hideErrorPreviewOverlay();
+      pendingErrorPreview = null;
+    }
+
+    els.buildPots.addEventListener("click", buildPotInputs);
+    els.assignLeagues.addEventListener("click", showLeagueOverlay);
+    els.inspectOpponents.addEventListener("click", showInspectOverlay);
+    els.drawFixtures.addEventListener("click", drawFixtures);
+    els.checkValidity.addEventListener("click", checkValidity);
+    els.bugPanelBtn.addEventListener("click", showBugOverlay);
+    els.closeBugOverlayBtn.addEventListener("click", hideBugOverlay);
+    els.exportStateBtn.addEventListener("click", exportStateToFile);
+    els.importStateBtn.addEventListener("click", openImportFileDialog);
+    els.seedToPotsBtn.addEventListener("click", showSeedOverlay);
+    els.importJsonFile.addEventListener("change", importStateFromFile);
+    els.applySeedBtn.addEventListener("click", applySeedToPots);
+    els.closeSeedOverlayBtn.addEventListener("click", hideSeedOverlay);
+    els.closeSeedErrorBtn.addEventListener("click", hideSeedError);
+    els.createLeagueBtn.addEventListener("click", createLeague);
+    els.closeLeagueOverlayBtn.addEventListener("click", hideLeagueOverlay);
+    els.closeInspectOverlayBtn.addEventListener("click", hideInspectOverlay);
+    els.closeInspectTeamOverlayBtn.addEventListener("click", hideInspectTeamOverlay);
+    els.approveErrorPreviewBtn.addEventListener("click", approveErrorPreview);
+    els.cancelErrorPreviewBtn.addEventListener("click", hideErrorPreviewOverlay);
+    els.bugOverlay.addEventListener("click", (e) => {
+      if (e.target === els.bugOverlay) hideBugOverlay();
+    });
+    els.seedOverlay.addEventListener("click", (e) => {
+      if (e.target === els.seedOverlay) hideSeedOverlay();
+    });
+    els.seedErrorOverlay.addEventListener("click", (e) => {
+      if (e.target === els.seedErrorOverlay) hideSeedError();
+    });
+    els.leagueOverlay.addEventListener("click", (e) => {
+      if (e.target === els.leagueOverlay) hideLeagueOverlay();
+    });
+    els.inspectOverlay.addEventListener("click", (e) => {
+      if (e.target === els.inspectOverlay) hideInspectOverlay();
+    });
+    els.inspectTeamOverlay.addEventListener("click", (e) => {
+      if (e.target === els.inspectTeamOverlay) hideInspectTeamOverlay();
+    });
+    els.errorPreviewOverlay.addEventListener("click", (e) => {
+      if (e.target === els.errorPreviewOverlay) hideErrorPreviewOverlay();
+    });
+
+    [els.potsCount, els.teamsPerPot, els.matchesPerPot].forEach((input) => {
+      input.addEventListener("change", () => {
+        sanitizeConfig();
+      });
+    });
+
+    els.enforceHomeAwayBalance.addEventListener("change", () => {
+      if (els.enforceHomeAwayBalance.checked) {
+        els.softHomeAwayBalance.checked = false;
+      }
+      sanitizeConfig();
+    });
+
+    els.softHomeAwayBalance.addEventListener("change", () => {
+      if (els.softHomeAwayBalance.checked) {
+        els.enforceHomeAwayBalance.checked = false;
+      }
+      sanitizeConfig();
+    });
+
+    sanitizeConfig();
+    buildPotInputs();
+  </script>
+</body>
+</html>
